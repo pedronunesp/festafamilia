@@ -126,37 +126,16 @@ export default function GalleryAdminPage() {
   };
   
   const handleFileUpload = (setter: (url: string) => void, file: File) => {
-    if (file.size > 5 * 1024 * 1024) { // 5MB Limit
-        toast({
-            variant: "destructive",
-            title: "Arquivo muito grande",
-            description: "Por favor, escolha uma imagem com menos de 5MB."
-        });
-        return;
-    }
-
-    const reader = new FileReader();
-    reader.onload = async (event) => {
-        if(event.target?.result) {
-            const imageUrl = event.target.result as string;
-            setter(imageUrl);
-            // TODO: Implement actual image upload to a cloud storage (e.g., Cloudinary, AWS S3)
-            // For now, we are using data URL directly, which is not ideal for production.
-            toast({
-              title: "Upload Local",
-              description: "A imagem foi carregada localmente. Para persistir, implemente um serviço de upload de imagens.",
-              variant: "default"
-            });
-        }
-    };
-    reader.onerror = () => {
-         toast({
-            variant: "destructive",
-            title: "Erro de Leitura",
-            description: "Não foi possível ler o arquivo da imagem."
-        });
-    }
-    reader.readAsDataURL(file);
+    // This function is currently for local preview only.
+    // For persistent storage, you need to upload the file to a cloud storage service (e.g., Cloudinary, AWS S3)
+    // and then store the returned URL in your database.
+    toast({
+      title: "Upload de Arquivo (Aviso)",
+      description: "O upload de arquivos diretamente aqui não é persistente. Por favor, use o campo de URL ou implemente um serviço de armazenamento em nuvem.",
+      variant: "destructive"
+    });
+    // The file is not processed further here for database persistence.
+    // You would typically send 'file' to your cloud storage API here.
   }
 
   const addPhoto = async () => {
@@ -275,6 +254,21 @@ export default function GalleryAdminPage() {
         </Alert>
       )}
 
+      {/* WARNING FOR IMAGE UPLOAD */}
+      <Alert variant="warning" className="mb-6 bg-yellow-100 border-yellow-400 text-yellow-800">
+          <Info className="h-4 w-4" />
+          <AlertTitle>Atenção: Upload de Imagens</AlertTitle>
+          <AlertDescription>
+            O upload de arquivos de imagem diretamente nesta página **não é persistente**. As imagens são carregadas apenas para visualização local.
+            Para que as imagens sejam salvas e visíveis publicamente, você deve:
+            <ul className="list-disc list-inside mt-2">
+                <li>**Colar a URL de uma imagem** já hospedada em um serviço externo (ex: Imgur, Cloudinary, seu próprio servidor de arquivos).</li>
+                <li>**OU** implementar um serviço de armazenamento em nuvem (como Cloudinary, AWS S3, Google Cloud Storage) para lidar com o upload e persistência das imagens.</li>
+            </ul>
+            Apenas a URL da imagem é salva no banco de dados.
+          </AlertDescription>
+      </Alert>
+
       {/* Hero Background Image Section */}
       <Card className="mb-8">
         <CardHeader>
@@ -306,7 +300,7 @@ export default function GalleryAdminPage() {
                                 onClick={() => heroFileInputRef.current?.click()}
                             >
                                 <Upload className="mr-2 h-4 w-4" />
-                                Fazer Upload
+                                Fazer Upload (Não Persistente)
                             </Button>
                             <input
                                 type="file"
@@ -384,7 +378,7 @@ export default function GalleryAdminPage() {
                       onClick={() => fileInputRefs.current[index]?.click()}
                   >
                       <Upload className="mr-2 h-4 w-4" />
-                      Fazer Upload
+                      Fazer Upload (Não Persistente)
                   </Button>
                    <input
                       type="file"
