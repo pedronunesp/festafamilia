@@ -16,18 +16,19 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: false, message: 'No file uploaded.' }, { status: 400 });
     }
 
-    const bytes = await file.arrayBuffer();
-    const buffer = Buffer.from(bytes);
+    const arrayBuffer = await file.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
 
     // Upload to Cloudinary
     const result = await new Promise((resolve, reject) => {
-      cloudinary.uploader.upload_stream({ resource_type: "auto" }, (error, result) => {
+      const uploadStream = cloudinary.uploader.upload_stream({ resource_type: "auto" }, (error, result) => {
         if (error) {
           console.error("Cloudinary upload error:", error);
-          return reject(error);
+          return reject(new Error(`Cloudinary upload failed: ${error.message || JSON.stringify(error)}`));
         }
         resolve(result);
-      }).end(buffer);
+      });
+      uploadStream.end(buffer);
     });
 
     // @ts-ignore
