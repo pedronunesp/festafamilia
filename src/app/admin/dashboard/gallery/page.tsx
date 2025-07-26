@@ -125,17 +125,55 @@ export default function GalleryAdminPage() {
     }
   };
   
-  const handleFileUpload = (setter: (url: string) => void, file: File) => {
-    // This function is currently for local preview only.
-    // For persistent storage, you need to upload the file to a cloud storage service (e.g., Cloudinary, AWS S3)
-    // and then store the returned URL in your database.
-    toast({
-      title: "Upload de Arquivo (Aviso)",
-      description: "O upload de arquivos diretamente aqui não é persistente. Por favor, use o campo de URL ou implemente um serviço de armazenamento em nuvem.",
-      variant: "destructive"
-    });
-    // The file is not processed further here for database persistence.
-    // You would typically send 'file' to your cloud storage API here.
+  const handleFileUpload = async (setter: (url: string) => void, file: File) => {
+    if (file.size > 5 * 1024 * 1024) { // 5MB Limit
+        toast({
+            variant: "destructive",
+            title: "Arquivo muito grande",
+            description: "Por favor, escolha uma imagem com menos de 5MB."
+        });
+        return;
+    }
+
+    setIsSaving(true);
+    setError(null);
+
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+      const response = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        setter(result.url);
+        toast({
+          title: "Upload Concluído!",
+          description: "Imagem enviada para o Cloudinary e URL salva.",
+        });
+      } else {
+        setError(result.message || "Erro ao fazer upload da imagem.");
+        toast({
+          variant: "destructive",
+          title: "Erro de Upload",
+          description: result.message || "Não foi possível fazer upload da imagem.",
+        });
+      }
+    } catch (e) {
+      console.error("Failed to upload image:", e);
+      setError("Erro inesperado ao fazer upload da imagem.");
+      toast({
+        variant: "destructive",
+        title: "Erro de Upload",
+        description: "Erro inesperado ao fazer upload da imagem.",
+      });
+    } finally {
+      setIsSaving(false);
+    }
   }
 
   const addPhoto = async () => {
@@ -255,17 +293,12 @@ export default function GalleryAdminPage() {
       )}
 
       {/* WARNING FOR IMAGE UPLOAD */}
-      <Alert variant="warning" className="mb-6 bg-yellow-100 border-yellow-400 text-yellow-800">
+      <Alert variant="success" className="mb-6 bg-green-100 border-green-400 text-green-800">
           <Info className="h-4 w-4" />
-          <AlertTitle>Atenção: Upload de Imagens</AlertTitle>
+          <AlertTitle>Upload de Imagens Configurado!</AlertTitle>
           <AlertDescription>
-            O upload de arquivos de imagem diretamente nesta página **não é persistente**. As imagens são carregadas apenas para visualização local.
-            Para que as imagens sejam salvas e visíveis publicamente, você deve:
-            <ul className="list-disc list-inside mt-2">
-                <li>**Colar a URL de uma imagem** já hospedada em um serviço externo (ex: Imgur, Cloudinary, seu próprio servidor de arquivos).</li>
-                <li>**OU** implementar um serviço de armazenamento em nuvem (como Cloudinary, AWS S3, Google Cloud Storage) para lidar com o upload e persistência das imagens.</li>
-            </ul>
-            Apenas a URL da imagem é salva no banco de dados.
+            Agora você pode fazer upload de imagens diretamente do seu dispositivo. Elas serão enviadas para o Cloudinary e a URL será salva no banco de dados.
+            Alternativamente, você ainda pode colar a URL de uma imagem já hospedada.
           </AlertDescription>
       </Alert>
 
@@ -300,7 +333,7 @@ export default function GalleryAdminPage() {
                                 onClick={() => heroFileInputRef.current?.click()}
                             >
                                 <Upload className="mr-2 h-4 w-4" />
-                                Fazer Upload (Não Persistente)
+                                Fazer Upload
                             </Button>
                             <input
                                 type="file"
@@ -378,7 +411,7 @@ export default function GalleryAdminPage() {
                       onClick={() => fileInputRefs.current[index]?.click()}
                   >
                       <Upload className="mr-2 h-4 w-4" />
-                      Fazer Upload (Não Persistente)
+                      Fazer Upload
                   </Button>
                    <input
                       type="file"
