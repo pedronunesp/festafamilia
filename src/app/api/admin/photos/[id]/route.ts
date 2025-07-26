@@ -42,8 +42,12 @@ export async function DELETE(request: Request, { params }: { params: { id: strin
 
     revalidatePath('/');
     return NextResponse.json({ message: "Foto deletada com sucesso." }, { status: 200 });
-  } catch (error) {
+  } catch (error: any) {
     console.error("Erro ao deletar foto:", error);
+    // Check if it's a Prisma error and provide more specific feedback
+    if (error.code === 'P2025') {
+      return NextResponse.json({ message: "Foto não encontrada." }, { status: 404 });
+    }
     return NextResponse.json({ message: "Erro interno do servidor ao deletar foto." }, { status: 500 });
   }
 }

@@ -214,6 +214,8 @@ export function GalleryAdminClient({ initialPhotos, initialHeroImage }: GalleryA
   
   const removePhoto = async (id: string | undefined) => {
     if (!id) return;
+    console.log("Attempting to remove photo with ID:", id);
+    console.log("Current photos in state:", photos.map(p => p.id));
     setIsSaving(true);
     setError(null);
     try {
