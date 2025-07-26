@@ -1,39 +1,10 @@
-"use client";
-
-import { useState, useEffect } from 'react';
 import Image from "next/image";
 import { Card } from "@/components/ui/card";
+import { getPhotos } from "@/app/actions";
 
-const defaultPhotos = [
-  { src: "https://placehold.co/600x400.png", alt: "Foto de família 1", description: "O início de tudo", hint: "family gathering", isVisible: true },
-  { src: "https://placehold.co/400x600.png", alt: "Foto de família 2", description: "Celebração especial", hint: "family party", isVisible: true },
-  { src: "https://placehold.co/600x400.png", alt: "Foto de família 3", description: "Risadas e alegria", hint: "celebration dinner", isVisible: true },
-  { src: "https://placehold.co/600x400.png", alt: "Foto de família 4", description: "Dia de sol", hint: "outdoor barbecue", isVisible: true },
-  { src: "https://placehold.co/400x600.png", alt: "Foto de família 5", description: "Momento doce", hint: "birthday cake", isVisible: true },
-  { src: "https://placehold.co/600x400.png", alt: "Foto de família 6", description: "Todos reunidos", hint: "group photo", isVisible: true },
-];
-
-export function PhotoGallery() {
-  const [photos, setPhotos] = useState(defaultPhotos);
-
-  useEffect(() => {
-    // This component will now reflect changes made in the admin panel
-    // by reading from localStorage. This is a temporary solution for the prototype.
-    // A real application would fetch this data from a server.
-    const savedPhotos = localStorage.getItem('galleryPhotos');
-    if (savedPhotos) {
-      try {
-        const parsedPhotos = JSON.parse(savedPhotos).map((p: any) => ({...p, isVisible: p.isVisible !== false, description: p.description || ''}));
-        if (Array.isArray(parsedPhotos)) {
-          setPhotos(parsedPhotos);
-        }
-      } catch (e) {
-        console.error("Failed to parse gallery photos from localStorage", e);
-        // If parsing fails, fall back to default photos
-        setPhotos(defaultPhotos);
-      }
-    }
-  }, []);
+export async function PhotoGallery() {
+  const photosResult = await getPhotos();
+  const photos = photosResult.success ? photosResult.data : [];
 
   // Determine if aspect ratio is portrait or landscape
   const getAspectRatio = (src: string) => {
@@ -49,8 +20,8 @@ export function PhotoGallery() {
 
   return (
     <div className="columns-2 md:columns-3 gap-4 space-y-4">
-      {photos.filter(p => p.isVisible).map((photo, index) => (
-        <div key={index} className="break-inside-avoid">
+      {photos.filter(p => p.isVisible).map((photo) => (
+        <div key={photo.id} className="break-inside-avoid">
           <Card className="overflow-hidden group border-2 border-primary/50 shadow-lg relative">
             <Image
               src={photo.src}

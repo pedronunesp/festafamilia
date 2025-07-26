@@ -1,5 +1,3 @@
-'use client';
-
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -10,10 +8,9 @@ import { PhotoGallery } from '@/components/photo-gallery';
 import { RsvpForm } from '@/components/rsvp-form';
 import { Separator } from '@/components/ui/separator';
 import Link from 'next/link';
-import { useState, useEffect } from 'react';
-import type { SiteContent } from './admin/dashboard/settings/page';
+import { getHeroImage } from '@/app/actions';
 
-const defaultContent: SiteContent = {
+const defaultContent = {
   heroTitle: "Festa da Família",
   heroSubtitle: "Teixeira, Tavares & Faria",
   heroDescription: "Junte-se a nós para um dia inesquecível de alegria, memórias e muita comida boa!",
@@ -35,22 +32,9 @@ const defaultContent: SiteContent = {
   footerText: "Feito com ❤️ para a grande família Teixeira, Tavares & Faria.",
 };
 
-export default function Home() {
-    const [content, setContent] = useState<SiteContent>(defaultContent);
-
-    useEffect(() => {
-        const savedContent = localStorage.getItem('siteContent');
-        if (savedContent) {
-            try {
-                const parsedContent = JSON.parse(savedContent);
-                // Merge with defaults to ensure all fields are present
-                setContent({...defaultContent, ...parsedContent});
-            } catch (e) {
-                console.error("Failed to parse site content from localStorage", e);
-                setContent(defaultContent);
-            }
-        }
-    }, []);
+export default async function Home() {
+  const heroImageResult = await getHeroImage();
+  const heroBackgroundImage = heroImageResult.success ? heroImageResult.data : defaultContent.heroBackgroundImage;
 
   const whatsappNumber = "5537998617771";
   const whatsappMessage = encodeURIComponent("Olá! Gostaria de enviar uma foto para o mural de memórias.");
@@ -65,27 +49,27 @@ export default function Home() {
           className="relative text-center py-20 md:py-32 lg:py-40 bg-primary/30 overflow-hidden"
         >
           <div className="absolute inset-0 bg-gradient-to-t from-background via-background/50 to-transparent z-10"></div>
-          {content.heroBackgroundImage && <Image
-            src={content.heroBackgroundImage}
+          {heroBackgroundImage && <Image
+            src={heroBackgroundImage}
             alt="Família reunida à mesa de jantar"
             data-ai-hint="family dinner"
             fill
             objectFit="cover"
             className="opacity-20"
-            key={content.heroBackgroundImage} // Add key to force re-render on change
+            key={heroBackgroundImage} // Add key to force re-render on change
           />}
           <div className="container mx-auto px-4 relative z-20">
             <h1 className="font-headline text-4xl md:text-6xl lg:text-7xl font-bold tracking-tight">
-              {content.heroTitle}
+              {defaultContent.heroTitle}
             </h1>
             <p className="mt-4 text-2xl md:text-4xl font-headline text-accent-foreground">
-              {content.heroSubtitle}
+              {defaultContent.heroSubtitle}
             </p>
             <p className="mt-6 max-w-2xl mx-auto text-lg text-muted-foreground">
-              {content.heroDescription}
+              {defaultContent.heroDescription}
             </p>
             <Button asChild size="lg" className="mt-8 text-base py-6 px-8">
-              <a href="#rsvp">{content.heroButton}</a>
+              <a href="#rsvp">{defaultContent.heroButton}</a>
             </Button>
           </div>
         </section>
@@ -93,8 +77,8 @@ export default function Home() {
         {/* Countdown Section */}
         <section id="countdown" className="py-16 md:py-24 bg-background">
           <div className="container mx-auto px-4 text-center">
-            <h2 className="text-3xl md:text-4xl font-headline font-bold mb-2">{content.countdownTitle}</h2>
-            <p className="text-muted-foreground mb-8 max-w-xl mx-auto">{content.countdownDescription}</p>
+            <h2 className="text-3xl md:text-4xl font-headline font-bold mb-2">{defaultContent.countdownTitle}</h2>
+            <p className="text-muted-foreground mb-8 max-w-xl mx-auto">{defaultContent.countdownDescription}</p>
             <Countdown />
           </div>
         </section>
@@ -105,8 +89,8 @@ export default function Home() {
         <section id="details" className="py-16 md:py-24 bg-primary/20">
           <div className="container mx-auto px-4">
             <div className="text-center mb-12">
-              <h2 className="text-3xl md:text-4xl font-headline font-bold">{content.detailsTitle}</h2>
-              <p className="text-muted-foreground mt-2">{content.detailsDescription}</p>
+              <h2 className="text-3xl md:text-4xl font-headline font-bold">{defaultContent.detailsTitle}</h2>
+              <p className="text-muted-foreground mt-2">{defaultContent.detailsDescription}</p>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto">
               <Card className="text-center shadow-lg transform hover:-translate-y-2 transition-transform duration-300">
@@ -115,7 +99,7 @@ export default function Home() {
                 </CardHeader>
                 <CardContent>
                   <CardTitle className="font-headline text-xl mb-2">Data</CardTitle>
-                  <p className="text-lg">{content.eventDate}</p>
+                  <p className="text-lg">{defaultContent.eventDate}</p>
                 </CardContent>
               </Card>
               <Card className="text-center shadow-lg transform hover:-translate-y-2 transition-transform duration-300">
@@ -124,7 +108,7 @@ export default function Home() {
                 </CardHeader>
                 <CardContent>
                   <CardTitle className="font-headline text-xl mb-2">Horário</CardTitle>
-                  <p className="text-lg">{content.eventTime}</p>
+                  <p className="text-lg">{defaultContent.eventTime}</p>
                 </CardContent>
               </Card>
               <Card className="text-center shadow-lg transform hover:-translate-y-2 transition-transform duration-300">
@@ -133,7 +117,7 @@ export default function Home() {
                 </CardHeader>
                 <CardContent>
                   <CardTitle className="font-headline text-xl mb-2">Local</CardTitle>
-                  <p className="text-lg">{content.eventLocationName}</p>
+                  <p className="text-lg">{defaultContent.eventLocationName}</p>
                 </CardContent>
               </Card>
             </div>
@@ -144,8 +128,8 @@ export default function Home() {
         <section id="location" className="py-16 md:py-24 bg-background">
           <div className="container mx-auto px-4">
             <div className="text-center mb-12">
-              <h2 className="text-3xl md:text-4xl font-headline font-bold">{content.locationTitle}</h2>
-              <p className="text-muted-foreground mt-2">{content.locationAddress}</p>
+              <h2 className="text-3xl md:text-4xl font-headline font-bold">{defaultContent.locationTitle}</h2>
+              <p className="text-muted-foreground mt-2">{defaultContent.locationAddress}</p>
             </div>
             <div className="max-w-4xl mx-auto">
               <MapView />
@@ -159,8 +143,8 @@ export default function Home() {
         <section id="gallery" className="py-16 md:py-24 bg-primary/20">
            <div className="container mx-auto px-4">
              <div className="text-center mb-12">
-               <h2 className="text-3xl md:text-4xl font-headline font-bold">{content.galleryTitle}</h2>
-               <p className="text-muted-foreground mt-2">{content.galleryDescription}</p>
+               <h2 className="text-3xl md:text-4xl font-headline font-bold">{defaultContent.galleryTitle}</h2>
+               <p className="text-muted-foreground mt-2">{defaultContent.galleryDescription}</p>
              </div>
              <div className="max-w-6xl mx-auto">
               <PhotoGallery />
@@ -181,8 +165,8 @@ export default function Home() {
         <section id="rsvp" className="py-16 md:py-24 bg-background">
           <div className="container mx-auto px-4">
             <div className="text-center mb-12">
-              <h2 className="text-3xl md:text-4xl font-headline font-bold">{content.rsvpTitle}</h2>
-              <p className="text-muted-foreground mt-2">{content.rsvpDescription}</p>
+              <h2 className="text-3xl md:text-4xl font-headline font-bold">{defaultContent.rsvpTitle}</h2>
+              <p className="text-muted-foreground mt-2">{defaultContent.rsvpDescription}</p>
             </div>
             <div className="flex justify-center">
               <RsvpForm />
@@ -192,7 +176,7 @@ export default function Home() {
 
       </main>
       <footer className="bg-foreground text-background text-center p-6 relative">
-        <p>{content.footerText}</p>
+        <p>{defaultContent.footerText}</p>
         <p className="text-sm opacity-70 mt-1">&copy; {new Date().getFullYear()} Todos os direitos reservados.</p>
         <div className="absolute bottom-2 right-2">
             <Button variant="ghost" size="icon" asChild>

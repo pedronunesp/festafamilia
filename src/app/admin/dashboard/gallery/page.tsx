@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
@@ -13,62 +13,116 @@ import Link from 'next/link';
 import { Switch } from '@/components/ui/switch';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Separator } from '@/components/ui/separator';
-
-const initialPhotos = [
-  { src: "https://placehold.co/600x400.png", alt: "Foto de família 1", description: "O início de tudo", hint: "family gathering", isVisible: true },
-  { src: "https://placehold.co/400x600.png", alt: "Foto de família 2", description: "Celebração especial", hint: "family party", isVisible: true },
-  { src: "https://placehold.co/600x400.png", alt: "Foto de família 3", description: "Risadas e alegria", hint: "celebration dinner", isVisible: true },
-  { src: "https://placehold.co/600x400.png", alt: "Foto de família 4", description: "Dia de sol", hint: "outdoor barbecue", isVisible: true },
-  { src: "https://placehold.co/400x600.png", alt: "Foto de família 5", description: "Momento doce", hint: "birthday cake", isVisible: true },
-  { src: "https://placehold.co/600x400.png", alt: "Foto de família 6", description: "Todos reunidos", hint: "group photo", isVisible: true },
-];
+import { getPhotos, createPhoto, updatePhoto, deletePhoto, getHeroImage, updateHeroImage } from '@/app/actions';
 
 const defaultHeroImage = "https://placehold.co/1920x1080.png";
 
 type Photo = {
+    id?: string; // Make id optional for new photos before they are saved to DB
     src: string;
     alt: string;
-    description: string;
-    hint: string;
+    description?: string;
+    hint?: string;
     isVisible: boolean;
 };
 
 export default function GalleryAdminPage() {
   const router = useRouter();
   const { toast } = useToast();
-  const [photos, setPhotos] = useState<Photo[]>(initialPhotos);
-  const [heroImage, setHeroImage] = useState(defaultHeroImage);
+  const [photos, setPhotos] = useState<Photo[]>([]);
+  const [heroImage, setHeroImageState] = useState(defaultHeroImage);
   const [isSaving, setIsSaving] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const fileInputRefs = useRef<(HTMLInputElement | null)[]>([]);
   const heroFileInputRef = useRef<HTMLInputElement | null>(null);
+
+  const setHeroImage = useCallback(async (url: string) => {
+    setHeroImageState(url);
+    try {
+      const result = await updateHeroImage(url);
+      if (!result.success) {
+        setError(result.errors?._errors?.join(', ') || "Erro ao salvar imagem de fundo.");
+        toast({
+          variant: "destructive",
+          title: "Erro",
+          description: result.errors?._errors?.join(', ') || "Erro ao salvar imagem de fundo.",
+        });
+      }
+    } catch (e) {
+      console.error("Failed to update hero image", e);
+      setError("Erro inesperado ao salvar imagem de fundo.");
+      toast({
+        variant: "destructive",
+        title: "Erro",
+        description: "Erro inesperado ao salvar imagem de fundo.",
+      });
+    }
+  }, [toast]);
 
   useEffect(() => {
     const isAuthenticated = localStorage.getItem('isAdminAuthenticated');
     if (isAuthenticated !== 'true') {
       router.push('/admin/login');
     }
-    // Load photos from localStorage if available
-    try {
-      const savedPhotos = localStorage.getItem('galleryPhotos');
-      if (savedPhotos) {
-        const parsedPhotos = JSON.parse(savedPhotos).map((p: any) => ({...p, isVisible: p.isVisible !== false, description: p.description || ''}));
-        setPhotos(parsedPhotos);
-      }
-      const siteContent = localStorage.getItem('siteContent');
-      if (siteContent) {
-        setHeroImage(JSON.parse(siteContent).heroBackgroundImage || defaultHeroImage);
-      }
-    } catch(e) {
-      setError("Falha ao carregar os dados salvos. O armazenamento local pode estar corrompido.");
-      console.error(e);
-    }
-  }, [router]);
 
-  const handlePhotoChange = (index: number, field: keyof Photo, value: string | boolean) => {
-    const newPhotos = [...photos];
-    newPhotos[index] = { ...newPhotos[index], [field]: value };
-    setPhotos(newPhotos);
+    const loadData = async () => {
+      setIsLoading(true);
+      setError(null);
+      try {
+        const photosResult = await getPhotos();
+        if (photosResult.success && photosResult.data) {
+          setPhotos(photosResult.data);
+        } else {
+          setError(photosResult.errors?._errors?.join(', ') || "Erro ao carregar fotos.");
+        }
+
+        const heroImageResult = await getHeroImage();
+        if (heroImageResult.success && heroImageResult.data) {
+          setHeroImageState(heroImageResult.data);
+        } else if (!heroImageResult.success) {
+          setError(heroImageResult.errors?._errors?.join(', ') || "Erro ao carregar imagem de fundo.");
+        }
+      } catch (e) {
+        console.error("Failed to load data", e);
+        setError("Erro ao carregar dados. Verifique a conexão com o banco de dados.");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadData();
+  }, [router, setHeroImage]);
+
+  const handlePhotoChange = async (id: string | undefined, field: keyof Photo, value: string | boolean) => {
+    const photoToUpdate = photos.find(p => p.id === id);
+    if (!photoToUpdate) return;
+
+    const updatedData = { ...photoToUpdate, [field]: value };
+    setPhotos(photos.map(p => p.id === id ? updatedData : p));
+
+    try {
+      const result = await updatePhoto(id!, updatedData);
+      if (!result.success) {
+        setError(result.errors?._errors?.join(', ') || "Erro ao atualizar foto.");
+        toast({
+          variant: "destructive",
+          title: "Erro",
+          description: result.errors?._errors?.join(', ') || "Erro ao atualizar foto.",
+        });
+        // Revert if update fails
+        setPhotos(photos);
+      }
+    } catch (e) {
+      console.error("Failed to update photo", e);
+      setError("Erro inesperado ao atualizar foto.");
+      toast({
+        variant: "destructive",
+        title: "Erro",
+        description: "Erro inesperado ao atualizar foto.",
+      });
+      setPhotos(photos);
+    }
   };
   
   const handleFileUpload = (setter: (url: string) => void, file: File) => {
@@ -82,9 +136,17 @@ export default function GalleryAdminPage() {
     }
 
     const reader = new FileReader();
-    reader.onload = (event) => {
+    reader.onload = async (event) => {
         if(event.target?.result) {
-            setter(event.target.result as string);
+            const imageUrl = event.target.result as string;
+            setter(imageUrl);
+            // TODO: Implement actual image upload to a cloud storage (e.g., Cloudinary, AWS S3)
+            // For now, we are using data URL directly, which is not ideal for production.
+            toast({
+              title: "Upload Local",
+              description: "A imagem foi carregada localmente. Para persistir, implemente um serviço de upload de imagens.",
+              variant: "default"
+            });
         }
     };
     reader.onerror = () => {
@@ -97,41 +159,88 @@ export default function GalleryAdminPage() {
     reader.readAsDataURL(file);
   }
 
-  const addPhoto = () => {
-    setPhotos([...photos, { src: 'https://placehold.co/600x400.png', alt: 'Nova Foto', description: 'Nova descrição', hint: 'new photo', isVisible: true }]);
-  };
-  
-  const removePhoto = (index: number) => {
-    const newPhotos = photos.filter((_, i) => i !== index);
-    setPhotos(newPhotos);
-  };
-
-  const saveChanges = () => {
+  const addPhoto = async () => {
     setIsSaving(true);
     setError(null);
     try {
-      localStorage.setItem('galleryPhotos', JSON.stringify(photos));
-
-      const siteContentRaw = localStorage.getItem('siteContent');
-      const siteContent = siteContentRaw ? JSON.parse(siteContentRaw) : {};
-      siteContent.heroBackgroundImage = heroImage;
-      localStorage.setItem('siteContent', JSON.stringify(siteContent));
-
+      const newPhotoData = { src: 'https://placehold.co/600x400.png', alt: 'Nova Foto', description: 'Nova descrição', hint: 'new photo', isVisible: true };
+      const result = await createPhoto(newPhotoData);
+      if (result.success && result.data) {
+        setPhotos(prevPhotos => [...prevPhotos, result.data as Photo]);
+        toast({
+          title: "Foto Adicionada!",
+          description: "Nova foto adicionada com sucesso.",
+        });
+      } else {
+        setError(result.errors?._errors?.join(', ') || "Erro ao adicionar foto.");
+        toast({
+          variant: "destructive",
+          title: "Erro",
+          description: result.errors?._errors?.join(', ') || "Erro ao adicionar foto.",
+        });
+      }
+    } catch (e) {
+      console.error("Failed to add photo", e);
+      setError("Erro inesperado ao adicionar foto.");
       toast({
-        title: "Galeria Salva!",
-        description: "Suas alterações foram salvas com sucesso no seu navegador.",
+        variant: "destructive",
+        title: "Erro",
+        description: "Erro inesperado ao adicionar foto.",
       });
-    } catch (e: any) {
-        console.error("Failed to save to localStorage", e);
-        if (e.name === 'QuotaExceededError') {
-             setError("Erro: O armazenamento do navegador está cheio. Tente remover algumas imagens ou use arquivos menores e otimizados.");
-        } else {
-             setError("Erro ao salvar. Verifique o console para mais detalhes.");
-        }
     } finally {
-        setIsSaving(false);
+      setIsSaving(false);
     }
   };
+  
+  const removePhoto = async (id: string | undefined) => {
+    if (!id) return;
+    setIsSaving(true);
+    setError(null);
+    try {
+      const result = await deletePhoto(id);
+      if (result.success) {
+        setPhotos(prevPhotos => prevPhotos.filter(p => p.id !== id));
+        toast({
+          title: "Foto Removida!",
+          description: "Foto removida com sucesso.",
+        });
+      } else {
+        setError(result.errors?._errors?.join(', ') || "Erro ao remover foto.");
+        toast({
+          variant: "destructive",
+          title: "Erro",
+          description: result.errors?._errors?.join(', ') || "Erro ao remover foto.",
+        });
+      }
+    } catch (e) {
+      console.error("Failed to remove photo", e);
+      setError("Erro inesperado ao remover foto.");
+      toast({
+        variant: "destructive",
+        title: "Erro",
+        description: "Erro inesperado ao remover foto.",
+      });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const saveChanges = async () => {
+    // Hero image is saved immediately on change via setHeroImage callback
+    // Photo changes are saved immediately via handlePhotoChange, addPhoto, removePhoto
+    toast({
+      title: "Alterações Salvas!",
+      description: "Todas as alterações foram salvas no banco de dados.",
+    });
+  };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-muted/40 p-4 md:p-6 flex items-center justify-center">
+        <p>Carregando galeria...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-muted/40 p-4 md:p-6">
@@ -155,13 +264,13 @@ export default function GalleryAdminPage() {
           <Info className="h-4 w-4 !text-primary-foreground" />
           <AlertTitle className="font-bold">Como as alterações funcionam?</AlertTitle>
           <AlertDescription>
-           As imagens e textos são salvos <strong>apenas no seu navegador</strong>. Para que seus convidados vejam as mudanças, você precisa fazer o deploy do site novamente.
+           As imagens e textos são salvos <strong>diretamente no banco de dados</strong>. As alterações serão visíveis imediatamente após o salvamento.
           </AlertDescription>
       </Alert>
 
       {error && (
         <Alert variant="destructive" className="mb-6">
-            <AlertTitle>Erro de Armazenamento</AlertTitle>
+            <AlertTitle>Erro</AlertTitle>
             <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}
@@ -239,7 +348,7 @@ export default function GalleryAdminPage() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
         {photos.map((photo, index) => (
-          <Card key={index} className={!photo.isVisible ? 'bg-muted/50 border-dashed' : ''}>
+          <Card key={photo.id || index} className={!photo.isVisible ? 'bg-muted/50 border-dashed' : ''}>
             <CardContent className="p-4">
               <div className="aspect-video relative mb-4">
                 <Image
@@ -253,7 +362,7 @@ export default function GalleryAdminPage() {
               <div className="space-y-4">
                 <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
                   <div className="space-y-0.5">
-                    <Label htmlFor={`visible-${index}`} className="flex items-center gap-2">
+                    <Label htmlFor={`visible-${photo.id || index}`} className="flex items-center gap-2">
                        {photo.isVisible ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4 text-muted-foreground" />}
                        {photo.isVisible ? 'Visível' : 'Oculto'}
                     </Label>
@@ -262,13 +371,13 @@ export default function GalleryAdminPage() {
                     </p>
                   </div>
                   <Switch
-                    id={`visible-${index}`}
+                    id={`visible-${photo.id || index}`}
                     checked={photo.isVisible}
-                    onCheckedChange={(checked) => handlePhotoChange(index, 'isVisible', checked)}
+                    onCheckedChange={(checked) => handlePhotoChange(photo.id, 'isVisible', checked)}
                   />
                 </div>
                 <div>
-                  <Label htmlFor={`upload-${index}`}>Imagem</Label>
+                  <Label htmlFor={`upload-${photo.id || index}`}>Imagem</Label>
                   <Button
                       variant="outline"
                       className="w-full"
@@ -279,40 +388,40 @@ export default function GalleryAdminPage() {
                   </Button>
                    <input
                       type="file"
-                      id={`upload-${index}`}
+                      id={`upload-${photo.id || index}`}
                       ref={(el) => { fileInputRefs.current[index] = el; }}
                       className="hidden"
                       accept="image/png, image/jpeg, image/gif, image/webp"
                       onChange={(e) => {
                           if (e.target.files?.[0]) {
-                              handleFileUpload((url) => handlePhotoChange(index, 'src', url), e.target.files[0]);
+                              handleFileUpload((url) => handlePhotoChange(photo.id, 'src', url), e.target.files[0]);
                           }
                       }}
                   />
                 </div>
                 <div>
-                  <Label htmlFor={`description-${index}`}>Descrição</Label>
+                  <Label htmlFor={`description-${photo.id || index}`}>Descrição</Label>
                   <Input
-                    id={`description-${index}`}
-                    value={photo.description}
-                    onChange={(e) => handlePhotoChange(index, 'description', e.target.value)}
+                    id={`description-${photo.id || index}`}
+                    value={photo.description || ''}
+                    onChange={(e) => handlePhotoChange(photo.id, 'description', e.target.value)}
                     placeholder="Descrição da foto"
                   />
                 </div>
                 <div>
-                  <Label htmlFor={`alt-${index}`}>Texto Alternativo (Acessibilidade)</Label>
+                  <Label htmlFor={`alt-${photo.id || index}`}>Texto Alternativo (Acessibilidade)</Label>
                   <Input
-                    id={`alt-${index}`}
+                    id={`alt-${photo.id || index}`}
                     value={photo.alt}
-                    onChange={(e) => handlePhotoChange(index, 'alt', e.target.value)}
+                    onChange={(e) => handlePhotoChange(photo.id, 'alt', e.target.value)}
                   />
                 </div>
                  <div>
-                  <Label htmlFor={`hint-${index}`}>Dica de IA (máx. 2 palavras)</Label>
+                  <Label htmlFor={`hint-${photo.id || index}`}>Dica de IA (máx. 2 palavras)</Label>
                   <Input
-                    id={`hint-${index}`}
-                    value={photo.hint}
-                    onChange={(e) => handlePhotoChange(index, 'hint', e.target.value)}
+                    id={`hint-${photo.id || index}`}
+                    value={photo.hint || ''}
+                    onChange={(e) => handlePhotoChange(photo.id, 'hint', e.target.value)}
                   />
                 </div>
               </div>
@@ -321,7 +430,7 @@ export default function GalleryAdminPage() {
               <Button
                 variant="destructive"
                 className="w-full"
-                onClick={() => removePhoto(index)}
+                onClick={() => removePhoto(photo.id)}
               >
                 <Trash2 className="mr-2 h-4 w-4" />
                 Remover
