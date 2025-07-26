@@ -155,7 +155,7 @@ export default function GalleryAdminPage() {
           <Info className="h-4 w-4 !text-primary-foreground" />
           <AlertTitle className="font-bold">Como as alterações funcionam?</AlertTitle>
           <AlertDescription>
-           As imagens e textos são salvos <strong>apenas no seu navegador</strong>. Para que seus convidados vejam as mudanças, você precisa <strong>reimplantar o site</strong> usando o comando `firebase deploy --only hosting` no terminal.
+           As imagens e textos são salvos <strong>apenas no seu navegador</strong>. Para que seus convidados vejam as mudanças, você precisa fazer o deploy do site novamente.
           </AlertDescription>
       </Alert>
 
@@ -280,7 +280,7 @@ export default function GalleryAdminPage() {
                    <input
                       type="file"
                       id={`upload-${index}`}
-                      ref={(el) => (fileInputRefs.current[index] = el)}
+                      ref={(el) => { fileInputRefs.current[index] = el; }}
                       className="hidden"
                       accept="image/png, image/jpeg, image/gif, image/webp"
                       onChange={(e) => {

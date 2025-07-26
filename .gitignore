@@ -23,9 +23,10 @@ pnpm-debug.log*
 
 # Local env files
 .env*.local
+.env
 
-# Firebase
-.firebase
+# Prisma
+.prisma/cache
 
 # Editor directories and files
 .vscode
@@ -39,3 +40,5 @@ pnpm-debug.log*
 # System files
 .DS_Store
 Thumbs.db
+
+/src/generated/prisma

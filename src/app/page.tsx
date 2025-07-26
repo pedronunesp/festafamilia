@@ -65,7 +65,7 @@ export default function Home() {
           className="relative text-center py-20 md:py-32 lg:py-40 bg-primary/30 overflow-hidden"
         >
           <div className="absolute inset-0 bg-gradient-to-t from-background via-background/50 to-transparent z-10"></div>
-          <Image
+          {content.heroBackgroundImage && <Image
             src={content.heroBackgroundImage}
             alt="Família reunida à mesa de jantar"
             data-ai-hint="family dinner"
@@ -73,7 +73,7 @@ export default function Home() {
             objectFit="cover"
             className="opacity-20"
             key={content.heroBackgroundImage} // Add key to force re-render on change
-          />
+          />}
           <div className="container mx-auto px-4 relative z-20">
             <h1 className="font-headline text-4xl md:text-6xl lg:text-7xl font-bold tracking-tight">
               {content.heroTitle}

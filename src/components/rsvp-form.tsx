@@ -54,8 +54,8 @@ export function RsvpForm() {
       if (result.success) {
         setSubmissionResult({ 
           success: true, 
-          message: `Obrigado por confirmar, ${result.data.name}!`,
-          attending: result.data.attending as 'yes' | 'no',
+          message: `Obrigado por confirmar, ${data.name}!`,
+          attending: data.attending as 'yes' | 'no',
         })
       } else {
         // Este caso idealmente não deveria acontecer devido à validação do lado do cliente
