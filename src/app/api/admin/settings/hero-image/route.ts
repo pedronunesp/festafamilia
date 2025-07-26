@@ -23,6 +23,7 @@ export async function PUT(request: Request) {
       create: { key: "heroBackgroundImage", value: imageUrl },
     });
 
+    revalidatePath('/');
     return NextResponse.json(setting, { status: 200 });
   } catch (error) {
     console.error("Erro ao atualizar imagem de fundo do herói:", error);

@@ -23,6 +23,7 @@ export async function POST(request: Request) {
       data: result.data,
     });
 
+    revalidatePath('/');
     return NextResponse.json(newPhoto, { status: 201 });
   } catch (error) {
     console.error("Erro ao criar foto:", error);

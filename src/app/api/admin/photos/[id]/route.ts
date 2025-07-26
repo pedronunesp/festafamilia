@@ -40,6 +40,7 @@ export async function DELETE(request: Request, { params }: { params: { id: strin
       where: { id },
     });
 
+    revalidatePath('/');
     return NextResponse.json({ message: "Foto deletada com sucesso." }, { status: 200 });
   } catch (error) {
     console.error("Erro ao deletar foto:", error);
