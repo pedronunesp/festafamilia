@@ -54,3 +54,17 @@ export async function getHeroImage() {
     return { success: false, errors: { _errors: ["Erro ao buscar imagem de fundo do herói."] } };
   }
 }
+
+export async function getSiteSettings() {
+  try {
+    const settings = await prisma.setting.findMany();
+    const settingsMap: { [key: string]: string } = {};
+    settings.forEach(setting => {
+      settingsMap[setting.key] = setting.value;
+    });
+    return { success: true, data: settingsMap };
+  } catch (error) {
+    console.error("Erro ao buscar configurações do site:", error);
+    return { success: false, errors: { _errors: ["Erro ao buscar configurações do site."] } };
+  }
+}

@@ -8,14 +8,13 @@ import { PhotoGallery } from '@/components/photo-gallery';
 import { RsvpForm } from '@/components/rsvp-form';
 import { Separator } from '@/components/ui/separator';
 import Link from 'next/link';
-import { getHeroImage } from '@/app/actions';
+import { getHeroImage, getSiteSettings } from '@/app/actions';
 
 const defaultContent = {
   heroTitle: "Festa da Família",
   heroSubtitle: "Teixeira, Tavares & Faria",
   heroDescription: "Junte-se a nós para um dia inesquecível de alegria, memórias e muita comida boa!",
   heroButton: "Confirmar Presença",
-  heroBackgroundImage: "https://placehold.co/1920x1080.png",
   countdownTitle: "Falta Pouco!",
   countdownDescription: "A contagem regressiva para o nosso grande dia já começou. Prepare-se!",
   detailsTitle: "Detalhes do Evento",
@@ -34,7 +33,12 @@ const defaultContent = {
 
 export default async function Home() {
   const heroImageResult = await getHeroImage();
-  const heroBackgroundImage = heroImageResult.success ? heroImageResult.data : defaultContent.heroBackgroundImage;
+  const heroBackgroundImage = heroImageResult.success ? heroImageResult.data : "https://placehold.co/1920x1080.png";
+
+  const siteSettingsResult = await getSiteSettings();
+  const siteContent = siteSettingsResult.success
+    ? { ...defaultContent, ...siteSettingsResult.data }
+    : defaultContent;
 
   const whatsappNumber = "5537998617771";
   const whatsappMessage = encodeURIComponent("Olá! Gostaria de enviar uma foto para o mural de memórias.");
@@ -60,16 +64,16 @@ export default async function Home() {
           />}
           <div className="container mx-auto px-4 relative z-20">
             <h1 className="font-headline text-4xl md:text-6xl lg:text-7xl font-bold tracking-tight">
-              {defaultContent.heroTitle}
+              {siteContent.heroTitle}
             </h1>
             <p className="mt-4 text-2xl md:text-4xl font-headline text-accent-foreground">
-              {defaultContent.heroSubtitle}
+              {siteContent.heroSubtitle}
             </p>
             <p className="mt-6 max-w-2xl mx-auto text-lg text-muted-foreground">
-              {defaultContent.heroDescription}
+              {siteContent.heroDescription}
             </p>
             <Button asChild size="lg" className="mt-8 text-base py-6 px-8">
-              <a href="#rsvp">{defaultContent.heroButton}</a>
+              <a href="#rsvp">{siteContent.heroButton}</a>
             </Button>
           </div>
         </section>
@@ -77,8 +81,8 @@ export default async function Home() {
         {/* Countdown Section */}
         <section id="countdown" className="py-16 md:py-24 bg-background">
           <div className="container mx-auto px-4 text-center">
-            <h2 className="text-3xl md:text-4xl font-headline font-bold mb-2">{defaultContent.countdownTitle}</h2>
-            <p className="text-muted-foreground mb-8 max-w-xl mx-auto">{defaultContent.countdownDescription}</p>
+            <h2 className="text-3xl md:text-4xl font-headline font-bold mb-2">{siteContent.countdownTitle}</h2>
+            <p className="text-muted-foreground mb-8 max-w-xl mx-auto">{siteContent.countdownDescription}</p>
             <Countdown />
           </div>
         </section>
@@ -89,8 +93,8 @@ export default async function Home() {
         <section id="details" className="py-16 md:py-24 bg-primary/20">
           <div className="container mx-auto px-4">
             <div className="text-center mb-12">
-              <h2 className="text-3xl md:text-4xl font-headline font-bold">{defaultContent.detailsTitle}</h2>
-              <p className="text-muted-foreground mt-2">{defaultContent.detailsDescription}</p>
+              <h2 className="text-3xl md:text-4xl font-headline font-bold">{siteContent.detailsTitle}</h2>
+              <p className="text-muted-foreground mt-2">{siteContent.detailsDescription}</p>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto">
               <Card className="text-center shadow-lg transform hover:-translate-y-2 transition-transform duration-300">
@@ -99,7 +103,7 @@ export default async function Home() {
                 </CardHeader>
                 <CardContent>
                   <CardTitle className="font-headline text-xl mb-2">Data</CardTitle>
-                  <p className="text-lg">{defaultContent.eventDate}</p>
+                  <p className="text-lg">{siteContent.eventDate}</p>
                 </CardContent>
               </Card>
               <Card className="text-center shadow-lg transform hover:-translate-y-2 transition-transform duration-300">
@@ -108,7 +112,7 @@ export default async function Home() {
                 </CardHeader>
                 <CardContent>
                   <CardTitle className="font-headline text-xl mb-2">Horário</CardTitle>
-                  <p className="text-lg">{defaultContent.eventTime}</p>
+                  <p className="text-lg">{siteContent.eventTime}</p>
                 </CardContent>
               </Card>
               <Card className="text-center shadow-lg transform hover:-translate-y-2 transition-transform duration-300">
@@ -117,7 +121,7 @@ export default async function Home() {
                 </CardHeader>
                 <CardContent>
                   <CardTitle className="font-headline text-xl mb-2">Local</CardTitle>
-                  <p className="text-lg">{defaultContent.eventLocationName}</p>
+                  <p className="text-lg">{siteContent.eventLocationName}</p>
                 </CardContent>
               </Card>
             </div>
@@ -128,8 +132,8 @@ export default async function Home() {
         <section id="location" className="py-16 md:py-24 bg-background">
           <div className="container mx-auto px-4">
             <div className="text-center mb-12">
-              <h2 className="text-3xl md:text-4xl font-headline font-bold">{defaultContent.locationTitle}</h2>
-              <p className="text-muted-foreground mt-2">{defaultContent.locationAddress}</p>
+              <h2 className="text-3xl md:text-4xl font-headline font-bold">{siteContent.locationTitle}</h2>
+              <p className="text-muted-foreground mt-2">{siteContent.locationAddress}</p>
             </div>
             <div className="max-w-4xl mx-auto">
               <MapView />
@@ -143,8 +147,8 @@ export default async function Home() {
         <section id="gallery" className="py-16 md:py-24 bg-primary/20">
            <div className="container mx-auto px-4">
              <div className="text-center mb-12">
-               <h2 className="text-3xl md:text-4xl font-headline font-bold">{defaultContent.galleryTitle}</h2>
-               <p className="text-muted-foreground mt-2">{defaultContent.galleryDescription}</p>
+               <h2 className="text-3xl md:text-4xl font-headline font-bold">{siteContent.galleryTitle}</h2>
+               <p className="text-muted-foreground mt-2">{siteContent.galleryDescription}</p>
              </div>
              <div className="max-w-6xl mx-auto">
               <PhotoGallery />
@@ -165,8 +169,8 @@ export default async function Home() {
         <section id="rsvp" className="py-16 md:py-24 bg-background">
           <div className="container mx-auto px-4">
             <div className="text-center mb-12">
-              <h2 className="text-3xl md:text-4xl font-headline font-bold">{defaultContent.rsvpTitle}</h2>
-              <p className="text-muted-foreground mt-2">{defaultContent.rsvpDescription}</p>
+              <h2 className="text-3xl md:text-4xl font-headline font-bold">{siteContent.rsvpTitle}</h2>
+              <p className="text-muted-foreground mt-2">{siteContent.rsvpDescription}</p>
             </div>
             <div className="flex justify-center">
               <RsvpForm />
@@ -176,7 +180,7 @@ export default async function Home() {
 
       </main>
       <footer className="bg-foreground text-background text-center p-6 relative">
-        <p>{defaultContent.footerText}</p>
+        <p>{siteContent.footerText}</p>
         <p className="text-sm opacity-70 mt-1">&copy; {new Date().getFullYear()} Todos os direitos reservados.</p>
         <div className="absolute bottom-2 right-2">
             <Button variant="ghost" size="icon" asChild>

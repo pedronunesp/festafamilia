@@ -41,6 +41,7 @@ export async function DELETE(request: Request, { params }: { params: { id: strin
     });
 
     revalidatePath('/');
+    revalidatePath('/admin/dashboard/gallery');
     return NextResponse.json({ message: "Foto deletada com sucesso." }, { status: 200 });
   } catch (error: any) {
     console.error("Erro ao deletar foto:", error);

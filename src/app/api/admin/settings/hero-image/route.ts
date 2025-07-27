@@ -24,6 +24,7 @@ export async function PUT(request: Request) {
     });
 
     revalidatePath('/');
+    revalidatePath('/admin/dashboard/gallery');
     return NextResponse.json(setting, { status: 200 });
   } catch (error) {
     console.error("Erro ao atualizar imagem de fundo do herói:", error);

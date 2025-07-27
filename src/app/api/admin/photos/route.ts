@@ -24,6 +24,7 @@ export async function POST(request: Request) {
     });
 
     revalidatePath('/');
+    revalidatePath('/admin/dashboard/gallery');
     return NextResponse.json(newPhoto, { status: 201 });
   } catch (error) {
     console.error("Erro ao criar foto:", error);

@@ -45,6 +45,7 @@ export default function SettingsPage() {
   const { toast } = useToast();
   const [content, setContent] = useState<SiteContent>(defaultContent);
   const [isSaving, setIsSaving] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const isAuthenticated = localStorage.getItem('isAdminAuthenticated');
@@ -52,35 +53,71 @@ export default function SettingsPage() {
       router.push('/admin/login');
       return;
     }
-    const savedContent = localStorage.getItem('siteContent');
-    if (savedContent) {
-      setContent(prev => ({...prev, ...JSON.parse(savedContent)}));
-    }
-  }, [router]);
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const fetchSettings = async () => {
+      try {
+        const response = await fetch('/api/admin/settings/general');
+        if (!response.ok) {
+          throw new Error('Failed to fetch settings');
+        }
+        const data = await response.json();
+        setContent(prev => ({ ...prev, ...data }));
+      } catch (error) {
+        console.error("Erro ao carregar configurações:", error);
+        toast({
+          variant: "destructive",
+          title: "Erro",
+          description: "Não foi possível carregar as configurações.",
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchSettings();
+  }, [router, toast]);
+
+  const handleInputChange = async (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { id, value } = e.target;
-    setContent(prev => ({ ...prev, [id]: value }));
+    const updatedContent = { ...content, [id]: value };
+    setContent(updatedContent);
+    
+    setIsSaving(true);
+    try {
+      const response = await fetch('/api/admin/settings/general', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ [id]: value }), // Send only the changed field
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to save setting');
+      }
+      toast({
+        title: "Configuração Salva!",
+        description: "A alteração foi salva com sucesso no banco de dados.",
+      });
+    } catch (error) {
+      console.error("Erro ao salvar configuração:", error);
+      toast({
+        variant: "destructive",
+        title: "Erro",
+        description: "Não foi possível salvar a configuração.",
+      });
+      // Optionally revert the change in UI if save fails
+      setContent(prev => ({ ...prev, [id]: (defaultContent as any)[id] }));
+    } finally {
+      setIsSaving(false);
+    }
   };
 
+  // No need for a separate saveChanges function as changes are saved on input change
   const saveChanges = () => {
-    setIsSaving(true);
-    // When saving, we don't want to overwrite the heroBackgroundImage managed elsewhere
-    const { heroBackgroundImage, ...contentToSave } = content;
-    const currentFullContentRaw = localStorage.getItem('siteContent');
-    const currentFullContent = currentFullContentRaw ? JSON.parse(currentFullContentRaw) : {};
-    
-    const newContent = { ...currentFullContent, ...contentToSave };
-
-    localStorage.setItem('siteContent', JSON.stringify(newContent));
-    
-    setTimeout(() => {
-      toast({
-        title: "Configurações Salvas!",
-        description: "Suas alterações foram salvas com sucesso no seu navegador.",
-      });
-      setIsSaving(false);
-    }, 1000);
+    toast({
+      title: "Informação",
+      description: "As alterações são salvas automaticamente ao digitar.",
+    });
   };
   
   const createFormField = (id: keyof SiteContent, label: string, type: 'input' | 'textarea' = 'input') => {
@@ -113,7 +150,7 @@ export default function SettingsPage() {
           <Info className="h-4 w-4 !text-primary-foreground" />
           <AlertTitle className="font-bold">Como as alterações funcionam?</AlertTitle>
           <AlertDescription>
-           As imagens e textos são salvos <strong>apenas no seu navegador</strong>. Para que seus convidados vejam as mudanças, você precisa fazer o deploy do site novamente.
+           As alterações são salvas <strong>diretamente no banco de dados</strong>. Elas serão visíveis imediatamente após o salvamento.
           </AlertDescription>
       </Alert>
       

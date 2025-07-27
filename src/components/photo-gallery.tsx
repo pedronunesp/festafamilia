@@ -6,17 +6,7 @@ export async function PhotoGallery() {
   const photosResult = await getPhotos();
   const photos = photosResult.success ? photosResult.data : [];
 
-  // Determine if aspect ratio is portrait or landscape
-  const getAspectRatio = (src: string) => {
-    if (src.startsWith('data:image')) return 400; // Default for base64
-    const match = src.match(/placehold\.co\/(\d+)x(\d+)/);
-    if(match) {
-        const width = parseInt(match[1], 10);
-        const height = parseInt(match[2], 10);
-        return height > width ? 600 : 400;
-    }
-    return 400;
-  }
+  
 
   return (
     <div className="columns-2 md:columns-3 gap-4 space-y-4">
@@ -26,9 +16,10 @@ export async function PhotoGallery() {
             <Image
               src={photo.src}
               alt={photo.alt}
-              unoptimized={photo.src.startsWith('data:image')} // Required for base64 Data URLs
+              unoptimized // Always unoptimized for external images
               width={600}
-              height={getAspectRatio(photo.src)}
+              
+              height={400} // Default height for unoptimized images
               data-ai-hint={photo.hint}
               className="w-full h-auto object-cover transition-transform duration-300 group-hover:scale-105"
             />

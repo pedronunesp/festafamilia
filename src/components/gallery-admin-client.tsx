@@ -34,7 +34,7 @@ export function GalleryAdminClient({ initialPhotos, initialHeroImage }: GalleryA
   const { toast } = useToast();
   const [photos, setPhotos] = useState<Photo[]>(initialPhotos);
   const [heroImage, setHeroImageState] = useState(initialHeroImage);
-  const [isSaving, setIsSaving] = useState(false);
+  
   const [error, setError] = useState<string | null>(null);
   const fileInputRefs = useRef<(HTMLInputElement | null)[]>([]);
   const heroFileInputRef = useRef<HTMLInputElement | null>(null);
@@ -251,14 +251,7 @@ export function GalleryAdminClient({ initialPhotos, initialHeroImage }: GalleryA
     }
   };
 
-  const saveChanges = async () => {
-    // Hero image is saved immediately on change via setHeroImage callback
-    // Photo changes are saved immediately via handlePhotoChange, addPhoto, removePhoto
-    toast({
-      title: "Alterações Salvas!",
-      description: "Todas as alterações foram salvas no banco de dados.",
-    });
-  };
+  
 
   return (
     <div className="min-h-screen bg-muted/40 p-4 md:p-6">
@@ -271,11 +264,7 @@ export function GalleryAdminClient({ initialPhotos, initialHeroImage }: GalleryA
           </Button>
           <h1 className="text-2xl font-bold">Gerenciar Imagens</h1>
         </div>
-        <div className="flex gap-2">
-            <Button onClick={saveChanges} disabled={isSaving}>
-                {isSaving ? 'Salvando...' : <><Save className="mr-2 h-4 w-4" /> Salvar Alterações</>}
-            </Button>
-        </div>
+        
       </div>
       
       <Alert className="mb-6 bg-primary/20 border-primary/50">
